@@ -1,75 +1,35 @@
 // tailwind.config.js
 module.exports = {
-  darkMode: 'class', // <-- Add this line to enable dark mode via class
   content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
+    './pages/**/*.{js,ts,jsx,tsx}',
+    './components/**/*.{js,ts,jsx,tsx}',
+    // Add other files where you use Tailwind classes
   ],
   theme: {
     extend: {
+      fontFamily: {
+        inter: ['Inter', 'sans-serif'], // Define 'inter' custom font family
+      },
       colors: {
-        primary: '#2563eb',
-        'primary-dark': '#1e40af',
-        heritage: {
-          100: '#f0f9ff',
-          200: '#e0f2fe',
-          300: '#bae6fd',
-          400: '#7dd3fc',
-          500: '#38bdf8',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-        }
+        // Define a custom primary color, e.g., a nice blue
+        primary: {
+          50: '#e0f2fe',
+          100: '#bfdbfe',
+          200: '#93c5fd',
+          300: '#60a5fa',
+          400: '#3b82f6',
+          500: '#2563eb', // A good default blue
+          600: '#1d4ed8',
+          700: '#1e40af',
+          800: '#1e3a8a',
+          900: '#1e306f',
+        },
+        // Re-aligning with your dark theme for clarity
+        darkBg: '#111827',
+        darkText: '#f3f4f6',
+        darkSecondary: '#1f2937', // A slightly lighter dark for cards, etc.
+        darkBorder: '#374151',
       },
-      animation: {
-        'float': 'float 6s ease-in-out infinite',
-        'pulse-slow': 'pulse 5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-      },
-      keyframes: {
-        float: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-20px)' },
-        }
-      }
-    },
-  },
-  plugins: [],
-}
-// tailwind.config.js
-module.exports = {
-  darkMode: 'class', // <-- Add this line to enable dark mode via class
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
-  theme: {
-    extend: {
-      colors: {
-        primary: '#2563eb',
-        'primary-dark': '#1e40af',
-        heritage: {
-          100: '#f0f9ff',
-          200: '#e0f2fe',
-          300: '#bae6fd',
-          400: '#7dd3fc',
-          500: '#38bdf8',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-        }
-      },
-      animation: {
-        'float': 'float 6s ease-in-out infinite',
-        'pulse-slow': 'pulse 5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-      },
-      keyframes: {
-        float: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-20px)' },
-        }
-      }
     },
   },
   plugins: [],

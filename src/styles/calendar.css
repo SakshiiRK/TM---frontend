@@ -1,59 +1,90 @@
-/* Calendar Container */
+/* Calendar Container - A sleek, deep space feel */
 .react-calendar {
   width: 100%;
-  max-width: 100%;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  max-width: 420px; /* Slightly wider for a more grand presence */
+  background: linear-gradient(145deg, #1A202C, #2D3748); /* Deep charcoal to dark blue-gray gradient */
+  border: 1px solid #364052; /* A subtle, slightly lighter border */
+  border-radius: 20px; /* Even more rounded, softer edges */
   font-family: 'Inter', sans-serif;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(0, 0, 0, 0.2); /* Stronger outer shadow, subtle inner glow */
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smoother, more pronounced transitions */
+  color: #E2E8F0; /* Soft white text */
+  position: relative; /* Needed for creative overlays */
+  padding: 10px; /* Inner padding to space out the content */
 }
 
-/* Calendar Navigation */
+/* Optional: Subtle texture or background pattern */
+.react-calendar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml;charset=utf-8,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%234A5568" fill-opacity="0.05" fill-rule="evenodd"%3E%3Ccircle cx="3" cy="3" r="3"%3E%3C/circle%3E%3Ccircle cx="30" cy="30" r="3"%3E%3C/circle%3E%3C/g%3E%3C/svg%3E'); /* Subtle dot pattern */
+    opacity: 0.1;
+    z-index: 0;
+}
+
+/* Calendar Navigation - A vibrant, energetic header */
 .react-calendar__navigation {
   display: flex;
-  height: 60px;
-  background: linear-gradient(to right, #4f46e5, #7c3aed);
+  height: 70px; /* Taller navigation for impact */
+  background: linear-gradient(90deg, #4299E1, #A78BFA, #ED64A6); /* Blue to Purple to Pink gradient */
   color: white;
   margin-bottom: 0;
+  border-bottom: 2px solid #5A67D8; /* A crisp, bold border */
+  border-radius: 15px 15px 0 0; /* Match container rounding */
+  padding: 0 10px; /* Inner padding for navigation */
+  position: relative;
+  z-index: 1; /* Ensure it's above the texture */
 }
 
 .react-calendar__navigation button {
-  min-width: 44px;
+  min-width: 55px; /* Wider, more clickable buttons */
   background: none;
   color: white;
-  font-weight: 600;
-  font-size: 1.1rem;
+  font-weight: 800; /* Extra bold navigation text */
+  font-size: 1.3rem; /* Larger, more readable font */
   border: none;
   outline: none;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Enhanced transition for buttons */
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3); /* Subtle text shadow */
 }
 
 .react-calendar__navigation button:enabled:hover,
 .react-calendar__navigation button:enabled:focus {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.3); /* Stronger, more translucent hover */
+  border-radius: 12px; /* Nicely rounded hover state */
+  transform: scale(1.05); /* Slight pop on hover */
 }
 
 .react-calendar__navigation__label {
   flex-grow: 1;
   text-align: center;
-  font-weight: 600;
-  font-size: 1.1rem;
-  letter-spacing: 0.5px;
+  font-weight: 800;
+  font-size: 1.35rem; /* Larger label font */
+  letter-spacing: 1px; /* More pronounced letter spacing */
+  color: #F7FAFC; /* Near pure white for label */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4); /* Stronger text shadow */
 }
 
-/* Weekdays */
+/* Weekdays - Clear and distinct */
 .react-calendar__month-view__weekdays {
   text-align: center;
   text-transform: uppercase;
-  font-weight: 600;
-  font-size: 0.8rem;
-  color: #4a5568;
-  padding: 12px 0;
-  background-color: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  font-weight: 700; /* Bolder weekdays */
+  font-size: 0.9rem; /* Slightly larger */
+  color: #6EE7B7; /* A refreshing, vibrant mint green for weekdays */
+  padding: 15px 0; /* More padding */
+  background-color: #262D3B; /* A distinct dark background for weekday row */
+  border-bottom: 1px solid #4A5568; /* Darker border */
+  position: relative;
+  z-index: 1;
 }
 
 .react-calendar__month-view__weekdays__weekday {
@@ -64,113 +95,203 @@
   text-decoration: none;
 }
 
-/* Days */
+/* Days Grid */
 .react-calendar__month-view__days {
-  padding: 8px;
+  padding: 15px; /* More padding around days */
+  position: relative;
+  z-index: 1;
 }
 
 .react-calendar__tile {
   max-width: 100%;
-  padding: 12px 6px;
+  padding: 16px 6px; /* Increased padding for larger touch targets */
   background: none;
   text-align: center;
-  line-height: 16px;
-  border-radius: 8px;
-  font-weight: 500;
-  transition: all 0.2s ease;
+  line-height: 1.5; /* Increased line height */
+  border-radius: 12px; /* More rounded tiles */
+  font-weight: 600; /* Slightly bolder for normal days */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Smoother tile transitions */
   position: relative;
-  color: #1e293b;
+  color: #A0AEC0; /* Soft gray for normal days */
+  font-size: 1.05rem; /* Slightly larger font size */
 }
 
 .react-calendar__tile:enabled:hover {
-  background-color: #f1f5f9;
-  transform: translateY(-2px);
+  background-color: rgba(66, 153, 225, 0.15); /* Subtle blue overlay on hover */
+  transform: translateY(-5px) scale(1.02); /* More pronounced lift and slight scale */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4); /* Stronger shadow on hover */
+  color: #90CDF4; /* Text brightens on hover */
 }
 
 .react-calendar__tile:enabled:focus {
-  background-color: #e0e7ff;
+  background-color: rgba(162, 126, 219, 0.3); /* Purple focus */
+  color: #F7FAFC;
+  box-shadow: 0 0 0 3px rgba(162, 126, 219, 0.5); /* Stronger focus ring */
 }
 
+/* Current Day - A vibrant, glowing marker */
 .react-calendar__tile--now {
-  background: #e0f2fe;
-  color: #0ea5e9;
-  font-weight: 600;
+  background: #E53E3E; /* A bold, striking red for today */
+  color: white;
+  font-weight: 800; /* Extra bold */
+  box-shadow: 0 6px 15px rgba(229, 62, 62, 0.6); /* Glowing shadow */
+  border: 2px solid #F56565; /* A subtle glowing border */
+  transform: scale(1.03); /* Slight pop */
+  z-index: 2; /* Ensure it's visually prominent */
 }
 
 .react-calendar__tile--now:enabled:hover,
 .react-calendar__tile--now:enabled:focus {
-  background: #bae6fd;
+  background: #C53030; /* Darker red on hover/focus */
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 10px 20px rgba(197, 48, 48, 0.7);
 }
 
-.react-calendar__tile--hasActive {
-  background: #c7d2fe;
-}
-
+/* Active/Selected Day - A premium, multi-layered highlight */
 .react-calendar__tile--active {
-  background: linear-gradient(to bottom, #6366f1, #4f46e5);
+  background: linear-gradient(135deg, #8B5CF6, #EC4899); /* Dynamic purple to pink gradient */
   color: white;
-  font-weight: 600;
-  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+  font-weight: 800;
+  box-shadow: 0 8px 20px -2px rgba(139, 92, 246, 0.5); /* Strong, colored shadow */
+  border: 2px solid #F6AD55; /* A golden border to signify selection */
+  transform: scale(1.08); /* More pronounced pop out for active */
+  z-index: 3; /* Highest visual prominence */
+  position: relative;
+  overflow: hidden;
+}
+
+.react-calendar__tile--active::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.15) 0%, transparent 70%); /* Subtle light pulse */
+    animation: pulse-light 2s infinite ease-in-out;
 }
 
 .react-calendar__tile--active:enabled:hover,
 .react-calendar__tile--active:enabled:focus {
-  background: linear-gradient(to bottom, #4f46e5, #4338ca);
+  background: linear-gradient(135deg, #7C3AED, #850043); /* Slightly darker, more intense gradient on hover */
+  transform: scale(1.06); /* Less pop on hover than initial active */
+  box-shadow: 0 12px 25px -2px rgba(124, 58, 237, 0.6);
 }
 
-/* Event Indicators */
+/* Event Indicators - A vibrant, high-contrast glow */
 .react-calendar__tile--hasEvents::after {
   content: '';
   position: absolute;
-  bottom: 6px;
+  bottom: 10px; /* Higher, more visible dot */
   left: 50%;
   transform: translateX(-50%);
-  width: 5px;
-  height: 5px;
-  background-color: #6366f1;
+  width: 8px; /* Larger dot */
+  height: 8px;
+  background-color: #FBD38D; /* Soft gold for events */
   border-radius: 50%;
+  box-shadow: 0 0 5px 2px rgba(251, 211, 141, 0.7); /* Subtle glow effect */
+  animation: pulse-dot 1.2s infinite ease-in-out alternate; /* Faster, alternating pulse */
 }
 
 .react-calendar__tile--active.react-calendar__tile--hasEvents::after {
-  background-color: white;
+  background-color: white; /* White dot on active event day */
+  box-shadow: 0 0 5px 2px rgba(255, 255, 255, 0.7); /* White glow */
+  animation: none; /* Stop pulse when active */
 }
 
 /* Month View */
 .react-calendar__month-view__days__day--neighboringMonth {
-  color: #94a3b8;
+  color: #6C7A8F; /* Darker, slightly desaturated gray for neighboring month days */
+  opacity: 0.4; /* More faded */
 }
 
-/* Year View */
+/* Year View (consistent dark styling) */
 .react-calendar__year-view .react-calendar__tile,
 .react-calendar__decade-view .react-calendar__tile,
 .react-calendar__century-view .react-calendar__tile {
-  padding: 1.5em 0.5em;
+  padding: 2em 0.5em; /* More generous padding */
+  color: #A0AEC0; /* Consistent text color */
+  font-size: 1.1rem;
 }
 
 /* Responsive Adjustments */
 @media (max-width: 768px) {
+  .react-calendar {
+    max-width: 100%;
+    border-radius: 16px;
+    padding: 8px;
+  }
   .react-calendar__navigation {
-    height: 50px;
+    height: 60px;
+    padding: 0 5px;
   }
-  
   .react-calendar__navigation button {
-    min-width: 36px;
-    font-size: 0.9rem;
+    min-width: 45px;
+    font-size: 1rem;
   }
-  
+  .react-calendar__navigation__label {
+    font-size: 1.1rem;
+  }
+  .react-calendar__month-view__weekdays {
+    padding: 10px 0;
+    font-size: 0.8rem;
+  }
   .react-calendar__tile {
-    padding: 10px 4px;
+    padding: 12px 4px;
     font-size: 0.9rem;
+    border-radius: 8px;
+  }
+  .react-calendar__tile--now,
+  .react-calendar__tile--active {
+    transform: scale(1.02); /* Less dramatic pop on smaller screens */
+  }
+  .react-calendar__tile--hasEvents::after {
+    bottom: 8px;
+    width: 6px;
+    height: 6px;
   }
 }
 
 @media (max-width: 480px) {
-  .react-calendar__navigation__label {
+  .react-calendar {
+    border-radius: 12px;
+    padding: 5px;
+  }
+  .react-calendar__navigation {
+    height: 50px;
+  }
+  .react-calendar__navigation button {
+    min-width: 38px;
     font-size: 0.9rem;
   }
-  
-  .react-calendar__tile {
-    padding: 8px 2px;
-    font-size: 0.8rem;
+  .react-calendar__navigation__label {
+    font-size: 1rem;
   }
+  .react-calendar__month-view__weekdays {
+    padding: 8px 0;
+    font-size: 0.75rem;
+  }
+  .react-calendar__tile {
+    padding: 10px 2px;
+    font-size: 0.85rem;
+  }
+  .react-calendar__tile--hasEvents::after {
+    bottom: 6px;
+    width: 5px;
+    height: 5px;
+  }
+}
+
+/* Keyframe for pulsing event dot */
+@keyframes pulse-dot {
+  0% { transform: translateX(-50%) scale(0.9); opacity: 0.9; }
+  50% { transform: translateX(-50%) scale(1.1); opacity: 1; }
+  100% { transform: translateX(-50%) scale(0.9); opacity: 0.9; }
+}
+
+/* Keyframe for subtle light pulse on active tile */
+@keyframes pulse-light {
+    0% { opacity: 0.15; transform: scale(0.8); }
+    50% { opacity: 0.3; transform: scale(1.1); }
+    100% { opacity: 0.15; transform: scale(0.8); }
 }
