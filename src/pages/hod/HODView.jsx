@@ -1,39 +1,65 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../../components/layout/Navbar';
-import API from '../../services/api';
+import API from '../../services/api'; // Assuming your API service is correctly configured
 import Calendar from 'react-calendar';
-import '../../styles/calendar.css';
+import '../../styles/calendar.css'; // This is typically react-calendar's default minimal CSS
+
+import { FaCalendarAlt, FaBuilding, FaInfoCircle, FaHourglassHalf, FaExclamationTriangle, FaCalendarDay } from 'react-icons/fa'; // Relevant icons
 
 const HODView = () => {
   const [date, setDate] = useState(new Date());
   const [slots, setSlots] = useState([]);
-  const user = JSON.parse(localStorage.getItem('user'));
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const user = JSON.parse(localStorage.getItem('user')) || {};
 
   const fetchDepartmentTimetable = async (selectedDate) => {
+    setLoading(true);
+    setError('');
+    setSlots([]); // Clear previous slots
+
     const dayName = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
 
     try {
+      // Ensure department is sent to filter data on the backend
       const res = await API.get(`/timetable/day/${dayName}`, {
-        params: { role: 'hod' },
+        params: { role: 'hod', department: user.department }, // Pass department for filtering
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       });
 
-      // Flatten all timetableSlots from all faculty entries
-      const allSlots = res.data.flatMap(entry =>
-        entry.timetableSlots.map(slot => ({
-          ...slot,
-          facultyId: entry.facultyId,
-          section: slot.section,
-          semester: slot.semester,
-        }))
-      );
+      // Flatten all timetableSlots from all entries in the department
+      // Assuming each 'entry' in res.data represents a faculty's timetable for the day
+      // And each 'slot' within timetableSlots contains courseName, facultyName, roomNo, etc.
+      const allDepartmentSlots = res.data.flatMap(entry => {
+        // Filter slots to ensure they belong to the current HOD's department
+        // This client-side filter is a safeguard, backend should already handle it.
+        if (entry.department === user.department) {
+            return entry.timetableSlots.map(slot => ({
+                ...slot,
+                // Add unique identifiers if necessary for display, e.g., faculty name from entry
+                // If facultyName is already in slot, no need to re-add.
+                // Assuming `facultyName` is available directly in the `slot` object.
+            }));
+        }
+        return [];
+      });
 
-      setSlots(allSlots);
+      // Sort slots by time for better readability
+      allDepartmentSlots.sort((a, b) => {
+        const timeA = new Date(`2000/01/01 ${a.time}`); // Use dummy date for time comparison
+        const timeB = new Date(`2000/01/01 ${b.time}`);
+        return timeA - timeB;
+      });
+
+      setSlots(allDepartmentSlots);
     } catch (err) {
       console.error('Failed to fetch department timetable:', err);
+      setError('Failed to fetch department timetable. Please check your network or try again.');
       setSlots([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -43,227 +69,255 @@ const HODView = () => {
   };
 
   useEffect(() => {
-    fetchDepartmentTimetable(date);
-  }, []);
+    // Fetch timetable on initial mount and when user data might change (e.g., after login)
+    if (user.department) {
+        fetchDepartmentTimetable(date);
+    } else {
+        setError("User department not found. Cannot load department timetable.");
+    }
+  }, [date, user.department]); // Added user.department to dependencies
 
   return (
     <>
       <Navbar />
-      <div className="p-6 max-w-6xl mx-auto">
-        <h2 className="text-2xl font-bold mb-6">Department Timetable (HOD View)</h2>
-        <p className="mb-4 text-gray-600">
-          Viewing timetable for: <strong>{user.department}</strong><br />
-          Date: {date.toLocaleDateString()}
-        </p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
+        
+        {/* Main Heading */}
+        <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-10 text-center animate-fade-in-down">
+          <FaCalendarDay className="inline-block mr-4 text-cyan-400 text-4xl sm:text-5xl animate-pop-in" />
+          Department Timetable
+        </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-white p-4 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold mb-4 text-black">Select Date</h3>
+        {/* User Info Bar */}
+        <div className="bg-gray-800/70 rounded-xl shadow-md p-6 mb-8 text-gray-200 text-center border border-gray-700 animate-fade-in-up animation-delay-300 w-full max-w-2xl">
+            <FaInfoCircle className="inline-block text-blue-300 text-2xl mr-3" />
+            <span className="font-semibold text-lg">Viewing schedule for Department: </span>
+            <span className="text-white font-bold">{user.department || 'N/A'}</span>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-6xl">
+          {/* Calendar Card */}
+          <div className="bg-gray-800/90 rounded-2xl shadow-xl p-6 border border-gray-700 backdrop-blur-sm transform transition-all duration-700 opacity-0 animate-fade-in-scale-up">
+            <h3 className="text-white text-2xl font-bold mb-6 flex items-center gap-3">
+              <FaCalendarAlt className="text-teal-400 text-2xl" /> Select Date
+            </h3>
             <Calendar
               onChange={handleDateChange}
               value={date}
-              className="border rounded-lg p-2 w-full"
+              className="react-calendar-custom" // Apply our custom styling class
             />
           </div>
 
-          <div className="bg-white p-4 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold mb-4 text-black">
-              Department Schedule for {date.toLocaleDateString()}
+          {/* Timetable Display Card */}
+          <div className="bg-gray-800/90 rounded-2xl shadow-xl p-6 border border-gray-700 backdrop-blur-sm transform transition-all duration-700 opacity-0 animate-fade-in-scale-up animation-delay-200">
+            <h3 className="text-white text-2xl font-bold mb-6 flex items-center gap-3">
+              <FaBuilding className="text-purple-400 text-2xl" /> Department Schedule for {date.toLocaleDateString()}
             </h3>
 
-            {slots.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-600"></div>
+                <p className="mt-4 text-gray-300 text-lg">Loading department schedule...</p>
+              </div>
+            ) : error ? (
+              <div className="bg-red-900/40 text-red-300 p-6 rounded-lg border border-red-700 text-center">
+                <p className="font-semibold text-xl mb-2">Error!</p>
+                <p>{error}</p>
+              </div>
+            ) : slots.length > 0 ? (
+              <div className="overflow-x-auto max-h-96 custom-scrollbar"> {/* Added scrollbar and max-height */}
+                <table className="min-w-full divide-y divide-gray-700 text-left">
+                  <thead className="bg-gray-700 sticky top-0 z-10"> {/* Sticky header for scroll */}
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Faculty</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
-                      {/* <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Section</th> */}
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Time</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Course</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Faculty</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Room</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Sec/Sem</th> {/* Combined for brevity */}
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-700">
                     {slots.map((t, index) => (
-                      <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="px-4 py-2 whitespace-nowrap text-black">{t.time}</td>
-                        <td className="px-4 py-2 text-black">{t.courseName}</td>
-                        <td className="px-4 py-2 text-black">{t.facultyId}</td>
-                        <td className="px-4 py-2 text-black">{t.roomNo}</td>
-                        {/* <td className="px-4 py-2 text-black">{t.section}</td> */}
+                      <tr key={index} className={`transform transition-all duration-300 ${index % 2 === 0 ? 'bg-gray-800' : 'bg-gray-700/50'} hover:bg-gray-700 animate-stagger-fade-in`} style={{ animationDelay: `${0.3 + index * 0.05}s` }}>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-100 font-medium">{t.time}</td>
+                        <td className="px-4 py-3 text-gray-200">{t.courseName} <span className="text-gray-400 text-sm">({t.courseCode})</span></td>
+                        <td className="px-4 py-3 text-gray-200">{t.facultyName || t.facultyId || 'N/A'}</td> {/* Display facultyName, fallback to facultyId */}
+                        <td className="px-4 py-3 text-gray-200">{t.roomNo}</td>
+                        <td className="px-4 py-3 text-gray-200">{t.section} / S{t.semester}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <p className="px-4 py-2 text-black">No classes scheduled for this date</p>
+              <div className="text-center py-8 bg-gray-700/30 rounded-lg p-6 border border-gray-600">
+                <p className="text-gray-400 italic text-xl">No classes scheduled for this date in your department.</p>
+                <p className="mt-2 text-gray-500 text-sm">Select another date or ensure department data is available.</p>
+              </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Custom CSS for refined animations and specific styles */}
+      <style jsx>{`
+        /* --- General Card & Text Animations --- */
+        @keyframes fade-in-scale-up {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in-scale-up { animation: fade-in-scale-up 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+        .animation-delay-200 { animation-delay: 0.2s !important; }
+        .animation-delay-300 { animation-delay: 0.3s !important; }
+
+        @keyframes fade-in-down {
+          from { opacity: 0; transform: translateY(-20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-down { animation: fade-in-down 0.9s ease-out forwards; animation-delay: 0.1s; }
+
+        @keyframes fade-in-up {
+          from { opacity: 0; transform: translateY(15px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up { animation: fade-in-up 0.7s ease-out forwards; animation-delay: 0.5s; }
+
+        @keyframes pop-in {
+          0% { transform: scale(0.5); opacity: 0; }
+          70% { transform: scale(1.1); opacity: 1; }
+          100% { transform: scale(1); }
+        }
+        .animate-pop-in { animation: pop-in 0.9s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; animation-delay: 0s; }
+
+        /* --- Staggered Timetable Slot Animation (for table rows) --- */
+        @keyframes stagger-fade-in {
+          from { opacity: 0; transform: translateX(-10px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        .animate-stagger-fade-in { animation: stagger-fade-in 0.4s ease-out forwards; }
+
+
+        /* --- Custom Scrollbar for Timetable Table --- */
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(30, 41, 59, 0.5); /* Darker track */
+          border-radius: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: #818CF8; /* Light purple/indigo thumb */
+          border-radius: 10px;
+          border: 2px solid rgba(30, 41, 59, 0.7);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background-color: #6366F1; /* Darker purple on hover */
+        }
+
+
+        /* --- React Calendar Custom Styling (Crucial for dark theme) --- */
+        .react-calendar-custom {
+          width: 100%;
+          border: none; /* Remove default border */
+          border-radius: 12px;
+          background-color: rgba(30, 41, 59, 0.7); /* Darker background for calendar itself */
+          font-family: inherit; /* Use global font */
+        }
+
+        .react-calendar-custom,
+        .react-calendar-custom button,
+        .react-calendar-custom button:enabled:hover,
+        .react-calendar-custom button:enabled:focus {
+          color: #E2E8F0; /* Light gray text for all elements */
+        }
+
+        .react-calendar-custom__navigation {
+          height: 44px;
+          margin-bottom: 1em;
+          background-color: rgba(46, 52, 64, 0.7); /* Slightly lighter dark for navigation */
+          border-radius: 8px;
+        }
+
+        .react-calendar-custom__navigation button {
+          min-width: 44px;
+          background: none;
+          font-weight: bold;
+        }
+
+        .react-calendar-custom__navigation button:enabled:hover,
+        .react-calendar-custom__navigation button:enabled:focus {
+          background-color: rgba(71, 85, 105, 0.5); /* Darker gray on hover/focus for navigation */
+          border-radius: 8px;
+        }
+
+        .react-calendar-custom__month-view__weekdays {
+          text-align: center;
+          text-transform: uppercase;
+          font-weight: bold;
+          font-size: 0.75em;
+          color: #9CA3AF; /* Muted gray for weekdays */
+        }
+
+        .react-calendar-custom__month-view__weekdays__weekday {
+          padding: 0.5em;
+        }
+
+        .react-calendar-custom__month-view__days__day {
+          padding: 0.6em 0.5em; /* Padding for days */
+          border-radius: 8px;
+        }
+
+        .react-calendar-custom__tile {
+          max-width: 100%;
+          text-align: center;
+          padding: 0.7em 0.5em;
+          background: none;
+          border-radius: 8px; /* Rounded tiles */
+          transition: background-color 0.2s, color 0.2s;
+        }
+
+        .react-calendar-custom__tile:enabled:hover,
+        .react-calendar-custom__tile:enabled:focus {
+          background-color: rgba(71, 85, 105, 0.5); /* Darker gray on hover/focus */
+          color: #E2E8F0;
+        }
+
+        .react-calendar-custom__tile--now {
+          background: rgba(100, 116, 139, 0.4); /* Muted blue for today */
+          border: 1px solid #60A5FA; /* Subtle border for today */
+        }
+
+        .react-calendar-custom__tile--active {
+          background-color: #4F46E5; /* Indigo for selected date */
+          color: white;
+          border-radius: 8px;
+        }
+        .react-calendar-custom__tile--active:enabled:hover,
+        .react-calendar-custom__tile--active:enabled:focus {
+          background-color: #6366F1; /* Lighter indigo on hover */
+        }
+
+        .react-calendar-custom--selectRange .react-calendar__tile--hover {
+          background-color: rgba(129, 140, 248, 0.3);
+        }
+
+        .react-calendar-custom__tile--range {
+          background: rgba(129, 140, 248, 0.2);
+          color: #E2E8F0;
+        }
+
+        /* View-specific styles for month, year, decade, century */
+        .react-calendar-custom__year-view .react-calendar__tile,
+        .react-calendar-custom__decade-view .react-calendar__tile,
+        .react-calendar-custom__century-view .react-calendar__tile {
+          padding: 2em 0.5em;
+        }
+      `}</style>
     </>
   );
 };
 
 export default HODView;
-
-// import React, { useState, useEffect } from 'react';
-// import Navbar from '../../components/layout/Navbar';
-// import API from '../../services/api';
-// import Calendar from 'react-calendar';
-// import '../../styles/calendar.css';
-
-// const HODView = () => {
-//   const [date, setDate] = useState(new Date());
-//   const [facultySlots, setFacultySlots] = useState([]);
-//   const [hodSlots, setHodSlots] = useState([]);
-//   const user = JSON.parse(localStorage.getItem('user'));
-
-//   const fetchTimetables = async (selectedDate) => {
-//     const dayName = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
-
-//     try {
-//       // Fetch all department faculty timetables
-//       const resFaculty = await API.get(`/timetable/day/${dayName}`, {
-//         params: { role: 'faculty', department: user.department },
-//         headers: {
-//           Authorization: `Bearer ${localStorage.getItem('token')}`
-//         }
-//       });
-
-//       const facultyData = resFaculty.data.flatMap(entry =>
-//         entry.timetableSlots.map(slot => ({
-//           ...slot,
-//           facultyId: entry.faculty_id || 'N/A',
-//           section: slot.section,
-//           semester: slot.semester
-//         }))
-//       );
-//       setFacultySlots(facultyData);
-
-//       // Fetch HOD's own timetable
-//       const resHod = await API.get(`/timetable/day/${dayName}`, {
-//         params: {
-//           role: 'hod',
-//           department: user.department,
-//           faculty_id: user.faculty_id
-//         },
-//         headers: {
-//           Authorization: `Bearer ${localStorage.getItem('token')}`
-//         }
-//       });
-
-//       const hodData = resHod.data.flatMap(entry =>
-//         entry.timetableSlots.map(slot => ({
-//           ...slot,
-//           section: slot.section,
-//           semester: slot.semester
-//         }))
-//       );
-//       setHodSlots(hodData);
-
-//     } catch (err) {
-//       console.error('Error fetching timetables:', err);
-//       setFacultySlots([]);
-//       setHodSlots([]);
-//     }
-//   };
-
-//   const handleDateChange = (newDate) => {
-//     setDate(newDate);
-//     fetchTimetables(newDate);
-//   };
-
-//   useEffect(() => {
-//     fetchTimetables(date);
-//   }, []);
-
-//   return (
-//     <>
-//       <Navbar />
-//       <div className="p-6 max-w-7xl mx-auto">
-//         <h2 className="text-2xl font-bold mb-6">HOD Dashboard - Department: {user.department}</h2>
-//         <p className="mb-4 text-gray-600">Date: {date.toLocaleDateString()}</p>
-
-//         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-//           {/* Calendar */}
-//           <div className="bg-white p-4 rounded-lg shadow-md">
-//             <h3 className="text-lg font-semibold mb-4 text-black">Select Date</h3>
-//             <Calendar
-//               onChange={handleDateChange}
-//               value={date}
-//               className="border rounded-lg p-2 w-full"
-//             />
-//           </div>
-
-//           {/* HOD's Own Timetable */}
-//           <div className="col-span-1 md:col-span-1 bg-white p-4 rounded-lg shadow-md">
-//             <h3 className="text-lg font-semibold mb-4 text-black">
-//               Your Timetable (HOD)
-//             </h3>
-//             {hodSlots.length > 0 ? (
-//               <table className="min-w-full divide-y divide-gray-200">
-//                 <thead className="bg-gray-50">
-//                   <tr>
-//                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Time</th>
-//                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Course</th>
-//                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Room</th>
-//                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Section</th>
-//                   </tr>
-//                 </thead>
-//                 <tbody>
-//                   {hodSlots.map((slot, index) => (
-//                     <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-//                       <td className="px-4 py-2 text-black">{slot.time}</td>
-//                       <td className="px-4 py-2 text-black">{slot.courseName}</td>
-//                       <td className="px-4 py-2 text-black">{slot.roomNo}</td>
-//                       <td className="px-4 py-2 text-black">{slot.section}</td>
-//                     </tr>
-//                   ))}
-//                 </tbody>
-//               </table>
-//             ) : (
-//               <p className="text-black">No classes scheduled for you</p>
-//             )}
-//           </div>
-
-//           {/* Faculty Timetables */}
-//           <div className="col-span-1 md:col-span-1 bg-white p-4 rounded-lg shadow-md">
-//             <h3 className="text-lg font-semibold mb-4 text-black">
-//               Department Faculty Timetables
-//             </h3>
-//             {facultySlots.length > 0 ? (
-//               <table className="min-w-full divide-y divide-gray-200">
-//                 <thead className="bg-gray-50">
-//                   <tr>
-//                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Time</th>
-//                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Course</th>
-//                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Faculty</th>
-//                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Room</th>
-//                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Section</th>
-//                   </tr>
-//                 </thead>
-//                 <tbody>
-//                   {facultySlots.map((slot, index) => (
-//                     <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-//                       <td className="px-4 py-2 text-black">{slot.time}</td>
-//                       <td className="px-4 py-2 text-black">{slot.courseName}</td>
-//                       <td className="px-4 py-2 text-black">{slot.facultyId || "N/A"}</td>
-//                       <td className="px-4 py-2 text-black">{slot.roomNo}</td>
-//                       <td className="px-4 py-2 text-black">{slot.section || "N/A"}</td>
-//                     </tr>
-//                   ))}
-//                 </tbody>
-//               </table>
-//             ) : (
-//               <p className="text-black">No faculty classes scheduled</p>
-//             )}
-//           </div>
-//         </div>
-//       </div>
-//     </>
-//   );
-// };
-
-// export default HODView;
