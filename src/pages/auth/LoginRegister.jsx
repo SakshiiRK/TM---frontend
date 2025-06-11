@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../services/api.js';
+// import { useEffect } from 'react';
 
 const LoginRegister = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -39,7 +40,7 @@ const LoginRegister = () => {
         localStorage.setItem('user', JSON.stringify(user));
 
         alert('Login successful!');
-        
+
         // Fixed navigation logic
         if (user.role === 'admin') navigate('/dashboard');
         else if (user.role === 'faculty') navigate('/faculty');
@@ -74,6 +75,10 @@ const LoginRegister = () => {
       alert(err.response?.data?.message || 'Something went wrong');
     }
   };
+//   useEffect(() => {
+//   // Remove `dark` class from root HTML element
+//   document.documentElement.classList.remove('dark');
+// }, []);
 
   const resetForm = () => {
     setForm({
@@ -88,46 +93,52 @@ const LoginRegister = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 to-blue-200 dark:from-gray-900 dark:to-gray-800 transition-colors">
-      <div className="bg-white dark:bg-gray-900 p-8 rounded-xl shadow-2xl w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center mb-6 text-gray-800 dark:text-white">
-          {isLogin ? 'Login' : 'Register'}
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-950 dark:to-gray-800 transition-colors duration-500">
+      <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-md transform transition-all duration-300 hover:shadow-2xl hover:scale-[1.01]">
+        <h2 className="text-3xl font-extrabold text-center mb-8 text-gray-900 dark:text-white tracking-tight">
+          {isLogin ? 'Welcome Back!' : 'Join Us Today!'}
         </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {!isLogin && (
             <>
-              <select
-                value={role}
-                onChange={(e) => {
-                  setRole(e.target.value.toLowerCase());
-                  resetForm();
-                }}
-                className="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                required
-              >
-                <option value="hod">HOD</option>
-                <option value="faculty">Faculty</option>
-                <option value="student">Student</option>
-                <option value="admin">Admin</option>
-              </select>
+              <div className="relative">
+                <select
+                  value={role}
+                  onChange={(e) => {
+                    setRole(e.target.value.toLowerCase());
+                    resetForm();
+                  }}
+                  className="w-full p-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 text-gray-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none transition-colors duration-200"
+                  required
+                >
+                  <option value="hod">HOD</option>
+                  <option value="faculty">Faculty</option>
+                  <option value="student">Student</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700 dark:text-gray-300">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                </div>
+              </div>
+
 
               <input
                 type="text"
-                placeholder="Name"
+                placeholder="Full Name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="input"
+                className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 text-gray-800 placeholder-gray-400 dark:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
                 required
               />
 
               {(role === 'faculty' || role === 'hod' || role === 'student') && (
                 <input
                   type="text"
-                  placeholder="Department"
+                  placeholder="Department (e.g., CSE, ECE)"
                   value={form.department}
                   onChange={(e) => setForm({ ...form, department: e.target.value })}
-                  className="input"
+                  className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 text-gray-800 placeholder-gray-400 dark:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
                   required
                 />
               )}
@@ -136,18 +147,18 @@ const LoginRegister = () => {
                 <>
                   <input
                     type="text"
-                    placeholder="Section"
+                    placeholder="Section (e.g., A, B)"
                     value={form.section}
                     onChange={(e) => setForm({ ...form, section: e.target.value })}
-                    className="input"
+                    className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 text-gray-800 placeholder-gray-400 dark:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
                     required
                   />
                   <input
                     type="text"
-                    placeholder="Semester"
+                    placeholder="Semester (e.g., 1, 2, 3)"
                     value={form.semester}
                     onChange={(e) => setForm({ ...form, semester: e.target.value })}
-                    className="input"
+                    className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 text-gray-800 placeholder-gray-400 dark:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
                     required
                   />
                 </>
@@ -159,7 +170,7 @@ const LoginRegister = () => {
                   placeholder="Faculty ID"
                   value={form.faculty_id}
                   onChange={(e) => setForm({ ...form, faculty_id: e.target.value })}
-                  className="input"
+                  className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 text-gray-800 placeholder-gray-400 dark:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
                   required
                 />
               )}
@@ -168,10 +179,10 @@ const LoginRegister = () => {
 
           <input
             type="email"
-            placeholder="Email"
+            placeholder="Email Address"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="input"
+            className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 text-gray-800 placeholder-gray-400 dark:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
             required
           />
 
@@ -181,7 +192,7 @@ const LoginRegister = () => {
               placeholder="Faculty ID"
               value={form.faculty_id}
               onChange={(e) => setForm({ ...form, faculty_id: e.target.value })}
-              className="input"
+              className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 text-gray-800 placeholder-gray-400 dark:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
               required
             />
           )}
@@ -191,22 +202,22 @@ const LoginRegister = () => {
             placeholder="Password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
-            className="input"
+            className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 text-gray-800 placeholder-gray-400 dark:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
             required
           />
 
           <button
             type="submit"
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded transition"
+            className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75"
           >
             {isLogin ? 'Login' : 'Register'}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-gray-600 dark:text-gray-300">
+        <p className="mt-6 text-center text-gray-600 dark:text-gray-400 text-sm">
           {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
           <button
-            className="text-indigo-600 hover:underline dark:text-indigo-400"
+            className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium hover:underline transition-colors duration-200"
             onClick={() => {
               setIsLogin(!isLogin);
               resetForm();
@@ -221,4 +232,3 @@ const LoginRegister = () => {
 };
 
 export default LoginRegister;
-
