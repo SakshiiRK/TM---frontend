@@ -2,86 +2,148 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '../../components/layout/Navbar';
 import API from '../../services/api'; // Assuming your API service is correctly configured
 import Calendar from 'react-calendar';
-import '../../styles/calendar.css'; // This is typically react-calendar's default minimal CSS
+import 'react-calendar/dist/Calendar.css'; // Default react-calendar styles (crucial for base styling)
+import '../../styles/calendar.css'; // Your custom calendar styling overrides
 
-import { FaCalendarAlt, FaBuilding, FaInfoCircle, FaHourglassHalf, FaExclamationTriangle, FaCalendarDay } from 'react-icons/fa'; // Relevant icons
+import {
+  FaCalendarAlt,
+  FaBuilding,
+  FaInfoCircle,
+  FaUserTie, // Icon for faculty
+  FaCalendarDay // Icon for overall timetable
+} from 'react-icons/fa';
 
 const HODView = () => {
   const [date, setDate] = useState(new Date());
-  const [slots, setSlots] = useState([]);
+  const [slots, setSlots] = useState([]); // All slots fetched for the department and day
+  const [facultyList, setFacultyList] = useState([]); // List of unique faculties in the department
+  const [selectedFaculty, setSelectedFaculty] = useState(''); // Stores the ID of the selected faculty for filtering
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Retrieve user information from local storage
   const user = JSON.parse(localStorage.getItem('user')) || {};
 
+  /**
+   * Fetches the timetable data for the HOD's department for a given date.
+   * Aggregates all faculty timetables within that department.
+   * @param {Date} selectedDate The date for which to fetch the timetable.
+   */
   const fetchDepartmentTimetable = async (selectedDate) => {
     setLoading(true);
     setError('');
-    setSlots([]); // Clear previous slots
+    setSlots([]); // Clear previous slots before fetching new ones
+    setFacultyList([]); // Clear previous faculty list
+    setSelectedFaculty(''); // Reset faculty selection when date changes
+
+    // Ensure the user's department is available
+    if (!user.department) {
+      setError("Department information not found. Please ensure you are logged in correctly.");
+      setLoading(false);
+      return;
+    }
 
     const dayName = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
 
     try {
-      // Ensure department is sent to filter data on the backend
+      // API call to fetch timetable data for the HOD's department and selected day
       const res = await API.get(`/timetable/day/${dayName}`, {
-        params: { role: 'hod', department: user.department }, // Pass department for filtering
+        params: { role: 'hod', department: user.department },
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
       });
 
-      // Flatten all timetableSlots from all entries in the department
-      // Assuming each 'entry' in res.data represents a faculty's timetable for the day
-      // And each 'slot' within timetableSlots contains courseName, facultyName, roomNo, etc.
-      const allDepartmentSlots = res.data.flatMap(entry => {
-        // Filter slots to ensure they belong to the current HOD's department
-        // This client-side filter is a safeguard, backend should already handle it.
-        if (entry.department === user.department) {
+      let allSlots = [];
+      if (Array.isArray(res.data)) {
+        allSlots = res.data.flatMap(entry => {
+          if (entry.department === user.department && Array.isArray(entry.timetableSlots)) {
             return entry.timetableSlots.map(slot => ({
-                ...slot,
-                // Add unique identifiers if necessary for display, e.g., faculty name from entry
-                // If facultyName is already in slot, no need to re-add.
-                // Assuming `facultyName` is available directly in the `slot` object.
+              ...slot,
+              // Prioritize slot's facultyName/Id, then entry's facultyName/Id, then fallback
+             
+              facultyId: slot.facultyId || entry.facultyId || 'CAN', // Ensure facultyId for filtering
+              section: slot.section || 'N/A', // Ensure section has a fallback
+              semester: slot.semester || 'N/A', // Ensure semester has a fallback
             }));
+          }
+          return [];
+        });
+      }
+
+      // Extract unique faculty members from the fetched slots to populate the filter dropdown
+      // Filter out 'N/A' faculty IDs from the list, unless 'N/A' is a valid filterable option
+      const uniqueFaculty = [
+        ...new Map(
+          allSlots
+            .filter(slot => slot.facultyId !== 'N/A') // Only add valid faculty to filter list
+            .map(slot => [
+              slot.facultyId,
+              { id: slot.facultyId, name: slot.facultyName },
+            ])
+        ).values(),
+      ].sort((a,b) => a.name.localeCompare(b.name));
+
+      // Sort all fetched slots by time for chronological display
+      allSlots.sort((a, b) => {
+        // Handle potentially missing time values gracefully
+        if (!a.time || !b.time) return 0;
+        try {
+          // Create dummy Date objects for reliable time comparison
+          const timeA = new Date(`2000/01/01 ${a.time}`);
+          const timeB = new Date(`2000/01/01 ${b.time}`);
+          return timeA - timeB;
+        } catch (e) {
+          console.warn("Error parsing time for sorting:", a.time, b.time, e);
+          return 0; // Return 0 if parsing fails to avoid breaking sort
         }
-        return [];
       });
 
-      // Sort slots by time for better readability
-      allDepartmentSlots.sort((a, b) => {
-        const timeA = new Date(`2000/01/01 ${a.time}`); // Use dummy date for time comparison
-        const timeB = new Date(`2000/01/01 ${b.time}`);
-        return timeA - timeB;
-      });
-
-      setSlots(allDepartmentSlots);
+      setFacultyList(uniqueFaculty);
+      setSlots(allSlots);
+      console.log(allSlots);
     } catch (err) {
-      console.error('Failed to fetch department timetable:', err);
-      setError('Failed to fetch department timetable. Please check your network or try again.');
-      setSlots([]);
+      console.error('Failed to fetch timetable:', err.response?.data?.message || err.message);
+      setError(err.response?.data?.message || 'Failed to load timetable. Please try again.');
+      setSlots([]); // Clear slots on error
+      setFacultyList([]); // Clear faculty list on error
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * Handles changes in the selected date from the calendar.
+   * @param {Date} newDate The newly selected date.
+   */
   const handleDateChange = (newDate) => {
     setDate(newDate);
     fetchDepartmentTimetable(newDate);
+    // console.log(allSlots);
   };
 
-  useEffect(() => {
-    // Fetch timetable on initial mount and when user data might change (e.g., after login)
-    if (user.department) {
-        fetchDepartmentTimetable(date);
-    } else {
-        setError("User department not found. Cannot load department timetable.");
-    }
-  }, [date, user.department]); // Added user.department to dependencies
+  /**
+   * Filters the 'slots' array based on the 'selectedFaculty' state.
+   * If no faculty is selected, returns all slots.
+   */
+  const filteredSlots = selectedFaculty
+    ? slots.filter(slot => slot.facultyId === selectedFaculty)
+    : slots;
 
+  // Effect hook to fetch timetable data on component mount or when date/user.department changes
+  useEffect(() => {
+    if (user.department) {
+      fetchDepartmentTimetable(date);
+    } else {
+      setError("Department information not found. Cannot load department timetable.");
+    }
+  }, [date, user.department]); // Dependencies for the effect
+  console.log(filteredSlots);
   return (
     <>
       <Navbar />
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
-        
+
         {/* Main Heading */}
         <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-10 text-center animate-fade-in-down">
           <FaCalendarDay className="inline-block mr-4 text-cyan-400 text-4xl sm:text-5xl animate-pop-in" />
@@ -90,13 +152,13 @@ const HODView = () => {
 
         {/* User Info Bar */}
         <div className="bg-gray-800/70 rounded-xl shadow-md p-6 mb-8 text-gray-200 text-center border border-gray-700 animate-fade-in-up animation-delay-300 w-full max-w-2xl">
-            <FaInfoCircle className="inline-block text-blue-300 text-2xl mr-3" />
-            <span className="font-semibold text-lg">Viewing schedule for Department: </span>
-            <span className="text-white font-bold">{user.department || 'N/A'}</span>
+          <FaInfoCircle className="inline-block text-blue-300 text-2xl mr-3" />
+          <span className="font-semibold text-lg">Viewing schedule for Department: </span>
+          <span className="text-white font-bold">{user.department || 'N/A'}</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-6xl">
-          {/* Calendar Card */}
+          {/* Calendar Selector Card */}
           <div className="bg-gray-800/90 rounded-2xl shadow-xl p-6 border border-gray-700 backdrop-blur-sm transform transition-all duration-700 opacity-0 animate-fade-in-scale-up">
             <h3 className="text-white text-2xl font-bold mb-6 flex items-center gap-3">
               <FaCalendarAlt className="text-teal-400 text-2xl" /> Select Date
@@ -104,46 +166,73 @@ const HODView = () => {
             <Calendar
               onChange={handleDateChange}
               value={date}
-              className="react-calendar-custom" // Apply our custom styling class
+              className="react-calendar-custom" // Apply custom styling
             />
+
+            {/* Faculty Selector Dropdown */}
+            <div className="mt-8">
+              <label htmlFor="faculty-select" className="block text-gray-300 text-lg font-medium mb-2 flex items-center">
+                <FaUserTie className="mr-2 text-purple-300 text-xl" /> Filter by Faculty
+              </label>
+              <div className="relative">
+                <select
+                  id="faculty-select"
+                  className="w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 cursor-pointer"
+                  value={selectedFaculty}
+                  onChange={(e) => setSelectedFaculty(e.target.value)}
+                >
+                  <option value="">All Faculty</option>
+                  {facultyList.map((fac) => (
+                    <option key={fac.id} value={fac.id}>
+                      {fac.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Timetable Display Card */}
           <div className="bg-gray-800/90 rounded-2xl shadow-xl p-6 border border-gray-700 backdrop-blur-sm transform transition-all duration-700 opacity-0 animate-fade-in-scale-up animation-delay-200">
             <h3 className="text-white text-2xl font-bold mb-6 flex items-center gap-3">
-              <FaBuilding className="text-purple-400 text-2xl" /> Department Schedule for {date.toLocaleDateString()}
+              <FaBuilding className="text-purple-400 text-2xl" />
+              Schedule for {date.toLocaleDateString()}
             </h3>
 
             {loading ? (
               <div className="text-center py-8">
                 <div className="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-600"></div>
-                <p className="mt-4 text-gray-300 text-lg">Loading department schedule...</p>
+                <p className="mt-4 text-gray-300 text-lg">Loading schedule...</p>
               </div>
             ) : error ? (
               <div className="bg-red-900/40 text-red-300 p-6 rounded-lg border border-red-700 text-center">
                 <p className="font-semibold text-xl mb-2">Error!</p>
                 <p>{error}</p>
               </div>
-            ) : slots.length > 0 ? (
-              <div className="overflow-x-auto max-h-96 custom-scrollbar"> {/* Added scrollbar and max-height */}
+            ) : filteredSlots.length > 0 ? (
+              <div className="overflow-x-auto max-h-96 custom-scrollbar">
                 <table className="min-w-full divide-y divide-gray-700 text-left">
-                  <thead className="bg-gray-700 sticky top-0 z-10"> {/* Sticky header for scroll */}
+                  <thead className="bg-gray-700 sticky top-0 z-10">
                     <tr>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Time</th>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Course</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Faculty</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">FacultyID</th>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Room</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Sec/Sem</th> {/* Combined for brevity */}
+                     
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-700">
-                    {slots.map((t, index) => (
-                      <tr key={index} className={`transform transition-all duration-300 ${index % 2 === 0 ? 'bg-gray-800' : 'bg-gray-700/50'} hover:bg-gray-700 animate-stagger-fade-in`} style={{ animationDelay: `${0.3 + index * 0.05}s` }}>
+                    {filteredSlots.map((t, i) => (
+                      <tr key={t._id || i} className={`transform transition-all duration-300 ${i % 2 === 0 ? 'bg-gray-800' : 'bg-gray-700/50'} hover:bg-gray-700 animate-stagger-fade-in`} style={{ animationDelay: `${0.3 + i * 0.05}s` }}>
+                        
                         <td className="px-4 py-3 whitespace-nowrap text-gray-100 font-medium">{t.time}</td>
                         <td className="px-4 py-3 text-gray-200">{t.courseName} <span className="text-gray-400 text-sm">({t.courseCode})</span></td>
-                        <td className="px-4 py-3 text-gray-200">{t.facultyName || t.facultyId || 'N/A'}</td> {/* Display facultyName, fallback to facultyId */}
-                        <td className="px-4 py-3 text-gray-200">{t.roomNo}</td>
-                        <td className="px-4 py-3 text-gray-200">{t.section} / S{t.semester}</td>
+                        <td className="px-4 py-3 text-gray-200">{t.facultyId }</td> {/* Now ensures 'N/A' if missing */}
+                        <td className="px-4 py-3 text-gray-200">{t.roomNo || 'N/A'}</td>
+                        
                       </tr>
                     ))}
                   </tbody>
@@ -151,7 +240,7 @@ const HODView = () => {
               </div>
             ) : (
               <div className="text-center py-8 bg-gray-700/30 rounded-lg p-6 border border-gray-600">
-                <p className="text-gray-400 italic text-xl">No classes scheduled for this date in your department.</p>
+                <p className="text-gray-400 italic text-xl">No classes scheduled for this date in your department, or no faculty selected.</p>
                 <p className="mt-2 text-gray-500 text-sm">Select another date or ensure department data is available.</p>
               </div>
             )}

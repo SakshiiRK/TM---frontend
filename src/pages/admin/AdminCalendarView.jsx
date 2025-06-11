@@ -40,7 +40,7 @@ const AdminCalendarView = () => {
   const departments = ['CSE', 'ECE', 'MECH', 'CIVIL', 'EEE']; // Example departments
   const sections = ['A', 'B', 'C', 'D']; // Example sections
   const semesters = ['1', '2', '3', '4', '5', '6', '7', '8']; // Example semesters
-  const facultyIds = ['F001', 'F002', 'F003', 'F004', 'F005']; // Example faculty IDs
+  const facultyIds = ['VCD', 'SRK', 'SH', 'US', 'SC','MC','BG','CAN']; // Example faculty IDs
 
   const getDayName = (date) => {
     return date.toLocaleDateString('en-US', { weekday: 'long' });
@@ -57,32 +57,33 @@ const AdminCalendarView = () => {
       department: selectedDepartment,
       // The `date` parameter is not used by your backend `/day/:day` route,
       // but it's okay to keep if you plan to extend the backend.
-      // date: selectedDate.toISOString().split('T')[0], 
+      // date: selectedDate.toISOString().split('T')[0],
     };
 
-    if (selectedRole === 'student') {
-        if (!selectedSection || !selectedSemester) {
-            setError('Please select Section and Semester for Student role.');
-            setSlots([]);
-            setLoading(false);
-            return;
-        }
-        queryParams.section = selectedSection;
-        queryParams.semester = selectedSemester;
-    } else if (selectedRole === 'faculty' || selectedRole === 'hod') {
-        if (!selectedFacultyId) {
-            // For HOD viewing general department, facultyId might be optional.
-            // For faculty viewing personal, it's required.
-            // Adjust this condition based on your exact requirement for HOD viewing.
-            if (selectedRole === 'faculty') { // Only strict for faculty's own timetable
-                setError('Please select Faculty ID for Faculty role.');
-                setSlots([]);
-                setLoading(false);
-                return;
-            }
-        }
-        queryParams.facultyId = selectedFacultyId;
+   if (selectedRole === 'student') {
+    if (!selectedSection || !selectedSemester) {
+        setError('Please select Section and Semester for Student role.');
+        setSlots([]);
+        setLoading(false);
+        return;
     }
+    queryParams.section = selectedSection;
+    queryParams.semester = selectedSemester;
+
+} else if (selectedRole === 'faculty') {
+    if (!selectedFacultyId) {
+        setError('Please select Faculty ID for Faculty role.');
+        setSlots([]);
+        setLoading(false);
+        return;
+    }
+    queryParams.facultyId = selectedFacultyId;
+
+} else if (selectedRole === 'hod') {
+    // HOD role no longer filters by faculty ID
+    // You can optionally add department/semester filters here if needed
+}
+
 
     // Ensure department is selected for any role, as it's a common filter
     if (!selectedDepartment) {
@@ -138,18 +139,18 @@ const AdminCalendarView = () => {
 
   useEffect(() => {
     // Only fetch if required filters are selected
-    if (selectedDepartment && 
-       ((selectedRole === 'student' && selectedSection && selectedSemester) ||
+    // Modified logic to allow HOD to fetch without facultyId for general department view
+    const canFetch = selectedDepartment && (
+        (selectedRole === 'student' && selectedSection && selectedSemester) ||
         (selectedRole === 'faculty' && selectedFacultyId) ||
-        (selectedRole === 'hod')) // HOD might or might not need facultyId
-    ) {
+        (selectedRole === 'hod' ) // HOD can fetch with or without selectedFacultyId
+    );
+
+    if (canFetch) {
       fetchSlots();
-    } else if (selectedDepartment && selectedRole === 'hod' && !selectedFacultyId) {
-        // Allow HOD to view general department timetable without facultyId
-        fetchSlots();
     } else {
       setSlots([]); // Clear slots if not enough filters are selected
-      setError('Please select all required filters (Department, Role, and specific criteria like Section/Semester or Faculty ID).');
+      setError('Please select all required filters (Department, Role, and specific criteria like Section/Semester or Faculty ID, if applicable).');
     }
   }, [selectedDate, selectedRole, selectedDepartment, selectedSection, selectedSemester, selectedFacultyId]);
 
@@ -165,7 +166,7 @@ const AdminCalendarView = () => {
         });
 
         // Update frontend state immediately
-        if (res.data.msg && res.data.msg.includes('daily entry removed')) {
+        if (res.data.msg && res.data.msg.includes('daily timetable entry was also removed')) {
           // If the last slot was deleted, the entire parent DailyTimetable was removed
           setSlots(prevSlots => prevSlots.filter(slot => slot.dailyTimetableId !== dailyTimetableId));
         } else {
@@ -359,7 +360,7 @@ const AdminCalendarView = () => {
             )}
 
             {/* Conditional Filters for Faculty/HOD Role */}
-            {(selectedRole === 'faculty' || selectedRole === 'hod') && (
+            {(selectedRole === 'faculty') && (
               <div className="flex items-center gap-3">
                 <label htmlFor="faculty-select" className="text-lg font-semibold text-gray-300">Faculty ID:</label>
                 <div className="relative">
@@ -470,7 +471,7 @@ const AdminCalendarView = () => {
         <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-md border border-gray-700 relative">
             <h3 className="text-2xl font-bold text-white mb-6 text-center">Edit Timetable Slot</h3>
-            
+
             <form onSubmit={handleSubmitEditedSlot} className="space-y-4">
               <div>
                 <label htmlFor="time" className="block text-gray-300 text-sm font-bold mb-2">Time:</label>
@@ -537,7 +538,7 @@ const AdminCalendarView = () => {
                 />
               </div>
               {/* Add other fields as needed, like section, semester, roundingsTime */}
-               <div>
+                <div>
                 <label htmlFor="roundingsTime" className="block text-gray-300 text-sm font-bold mb-2">Roundings Time (Optional):</label>
                 <input
                   type="text"
@@ -652,25 +653,19 @@ const AdminCalendarView = () => {
           from { opacity: 0; transform: translateX(-50px); }
           to { opacity: 1; transform: translateX(0); }
         }
-        .animate-slide-in-left { animation: slide-in-left 0.8s ease-out forwards; animation-delay: 0.2s; }
+        .animate-slide-in-left { animation: slide-in-left 0.7s ease-out forwards; }
 
         @keyframes fade-in-right {
-          from { opacity: 0; transform: translateX(20px); }
+          from { opacity: 0; transform: translateX(50px); }
           to { opacity: 1; transform: translateX(0); }
         }
-        .animate-fade-in-right { animation: fade-in-right 0.8s ease-out forwards; animation-delay: 0.4s; }
-
-        @keyframes fade-in-left {
-          from { opacity: 0; transform: translateX(-20px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        .animate-fade-in-left { animation: fade-in-left 0.8s ease-out forwards; animation-delay: 0.6s; }
+        .animate-fade-in-right { animation: fade-in-right 0.7s ease-out forwards; }
 
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.7; }
         }
-        .animate-pulse { animation: pulse 1.5s infinite; }
+        .animate-pulse { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
       `}</style>
     </>
   );
